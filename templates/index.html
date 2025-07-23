@@ -2,6 +2,7 @@
 <html lang="en" class="theme-futuristic">
 <head>
   <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>Local AI GUI</title>
   <link rel="stylesheet" href="/static/style.css">
   <!-- Highlight.js CSS for syntax highlighting -->
@@ -12,23 +13,32 @@
   <script src="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.7.0/highlight.min.js"></script>
   <!-- Include Three.js for futuristic 3D cube -->
   <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
+  <!-- Include Font Awesome for icons -->
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
 </head>
 <body>
   <!-- Futuristic 3D Cube Canvas (background element) -->
-  <canvas id="futuristicCube"></canvas>
+  <canvas id="futuristicCube" aria-hidden="true"></canvas>
+
+  <!-- Notification Toast -->
+  <div id="toast" class="toast" role="alert" aria-live="polite"></div>
 
   <div class="navbar">
     <div class="left-nav">
-      <div class="avatar">R1</div>
-      <h2>Local AI Chat</h2>
+      <div class="avatar" role="img" aria-label="AI Assistant Avatar">R1</div>
+      <h1>Local AI Chat</h1>
       <div class="donation-links">
-        <a href="https://paypal.me/l8rontop" target="_blank">Donate</a>
-        <a href="https://x.com/qusaismael" target="_blank">Twitter</a>
+        <a href="https://paypal.me/l8rontop" target="_blank" aria-label="Donate via PayPal">
+          <i class="fas fa-heart"></i> Donate
+        </a>
+        <a href="https://x.com/qusaismael" target="_blank" aria-label="Follow on Twitter">
+          <i class="fab fa-twitter"></i> Twitter
+        </a>
       </div>
       <!-- Theme Selector -->
       <div class="theme-selector">
-        <label for="themeSelect">Select Theme:</label>
-        <select id="themeSelect">
+        <label for="themeSelect">Theme:</label>
+        <select id="themeSelect" aria-label="Select theme">
           <option value="theme-purple-dark">Dark Mode</option>
           <option value="theme-futuristic" selected>Light Mode</option>
         </select>
@@ -36,35 +46,211 @@
     </div>
     <div class="right-nav">
       <!-- Date/Time Display -->
-      <div class="datetime" id="datetimeDisplay"></div>
-      <select id="modelSelect">
-        {% for model in models %}
-          <option value="{{ model }}">{{ model }}</option>
-        {% endfor %}
-      </select>
-      <button id="newChatBtn">+ New Chat</button>
+      <div class="datetime" id="datetimeDisplay" aria-label="Current date and time"></div>
+      <div class="model-selector-group">
+        <select id="modelSelect" aria-label="Select AI model">
+          {% for model in models %}
+            <option value="{{ model }}">{{ model }}</option>
+          {% endfor %}
+        </select>
+        <button id="manageModelsBtn" class="icon-btn" aria-label="Manage models" title="Manage Models">
+          <i class="fas fa-cogs"></i>
+        </button>
+      </div>
+      <button id="newChatBtn" aria-label="Create new chat">
+        <i class="fas fa-plus"></i> New Chat
+      </button>
     </div>
   </div>
 
   <div class="main-container">
     <div class="sidebar">
-      <h3>Chats</h3>
-      <ul id="chatList">
+      <div class="sidebar-header">
+        <h2>Chats</h2>
+        <div class="sidebar-controls">
+          <button id="searchBtn" class="icon-btn" aria-label="Search chats" title="Search">
+            <i class="fas fa-search"></i>
+          </button>
+          <button id="exportBtn" class="icon-btn" aria-label="Export chats" title="Export">
+            <i class="fas fa-download"></i>
+          </button>
+          <button id="importBtn" class="icon-btn" aria-label="Import chats" title="Import">
+            <i class="fas fa-upload"></i>
+          </button>
+        </div>
+      </div>
+      
+      <!-- Search Section -->
+      <div id="searchSection" class="search-section" style="display: none;">
+        <div class="search-input-group">
+          <input type="text" id="searchInput" placeholder="Search messages..." aria-label="Search messages">
+          <button id="searchExecuteBtn" aria-label="Execute search">
+            <i class="fas fa-search"></i>
+          </button>
+        </div>
+        <div id="searchResults" class="search-results"></div>
+      </div>
+
+      <!-- Chat List -->
+      <ul id="chatList" role="list" aria-label="Chat conversations">
         <!-- Chat list items will be populated here -->
       </ul>
-    </div>
-    <div class="chat-layout">
-      <div class="chat-window" id="chatWindow">
-        <!-- Chat messages will appear here -->
+
+      <!-- Statistics Panel -->
+      <div class="stats-panel">
+        <h3>Statistics</h3>
+        <div class="stat-item">
+          <span class="stat-label">Total Chats:</span>
+          <span id="totalChats" class="stat-value">0</span>
+        </div>
+        <div class="stat-item">
+          <span class="stat-label">Total Messages:</span>
+          <span id="totalMessages" class="stat-value">0</span>
+        </div>
+        <div class="stat-item">
+          <span class="stat-label">Active Model:</span>
+          <span id="activeModel" class="stat-value">-</span>
+        </div>
+        <div class="stat-item">
+          <span class="stat-label">Custom Models:</span>
+          <span id="customModels" class="stat-value">0</span>
+        </div>
       </div>
+    </div>
+
+    <div class="chat-layout">
+      <div class="chat-header">
+        <h2 id="chatTitle">Chat</h2>
+        <div class="chat-controls">
+          <button id="clearChatBtn" class="icon-btn" aria-label="Clear current chat" title="Clear Chat">
+            <i class="fas fa-trash"></i>
+          </button>
+          <button id="copyChatBtn" class="icon-btn" aria-label="Copy chat content" title="Copy Chat">
+            <i class="fas fa-copy"></i>
+          </button>
+        </div>
+      </div>
+      
+      <div class="chat-window" id="chatWindow" role="log" aria-live="polite" aria-label="Chat messages">
+        <div class="welcome-message">
+          <div class="welcome-content">
+            <i class="fas fa-robot welcome-icon"></i>
+            <h3>Welcome to Local AI Chat!</h3>
+            <p>Start a conversation with your local AI model. Type your message below and press Enter or click Send.</p>
+            <div class="welcome-features">
+              <div class="feature-item">
+                <i class="fas fa-search"></i>
+                <span>Search chat history</span>
+              </div>
+              <div class="feature-item">
+                <i class="fas fa-download"></i>
+                <span>Export/Import chats</span>
+              </div>
+              <div class="feature-item">
+                <i class="fas fa-cogs"></i>
+                <span>Add custom models</span>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+      
       <div class="input-area">
-        <textarea id="userInput" placeholder="Type your message here..."></textarea>
-        <button id="sendBtn">Send</button>
+        <div class="input-wrapper">
+          <textarea 
+            id="userInput" 
+            placeholder="Type your message here..." 
+            aria-label="Message input"
+            rows="2"
+            maxlength="10000"
+          ></textarea>
+          <div class="input-controls">
+            <button id="sendBtn" aria-label="Send message" disabled>
+              <i class="fas fa-paper-plane"></i>
+            </button>
+            <div class="char-counter">
+              <span id="charCount">0</span>/10000
+            </div>
+          </div>
+        </div>
       </div>
     </div>
   </div>
 
-  <!-- The bottom bar has been removed as requested -->
+  <!-- Hidden file input for import -->
+  <input type="file" id="fileInput" accept=".json" style="display: none;" aria-label="Select file to import">
+
+  <!-- Loading overlay -->
+  <div id="loadingOverlay" class="loading-overlay" style="display: none;" aria-hidden="true">
+    <div class="loading-spinner">
+      <i class="fas fa-spinner fa-spin"></i>
+      <p>Processing...</p>
+    </div>
+  </div>
+
+  <!-- Confirmation Modal -->
+  <div id="confirmModal" class="modal" style="display: none;" role="dialog" aria-labelledby="modalTitle" aria-describedby="modalMessage">
+    <div class="modal-content">
+      <h3 id="modalTitle">Confirm Action</h3>
+      <p id="modalMessage">Are you sure you want to proceed?</p>
+      <div class="modal-buttons">
+        <button id="modalCancel" class="btn-secondary">Cancel</button>
+        <button id="modalConfirm" class="btn-primary">Confirm</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- Model Management Modal -->
+  <div id="modelManagementModal" class="modal" style="display: none;" role="dialog" aria-labelledby="modelModalTitle">
+    <div class="modal-content model-management-content">
+      <div class="modal-header">
+        <h3 id="modelModalTitle">Manage Models</h3>
+        <button id="closeModelModal" class="close-btn" aria-label="Close modal">
+          <i class="fas fa-times"></i>
+        </button>
+      </div>
+      
+      <div class="modal-body">
+        <!-- Add Model Section -->
+        <div class="model-section">
+          <h4>Add Custom Model</h4>
+          <p class="help-text">Add models that you have pulled with Ollama. Make sure to run <code>ollama pull &lt;model-name&gt;</code> first.</p>
+          <div class="add-model-form">
+            <input 
+              type="text" 
+              id="modelNameInput" 
+              placeholder="Enter model name (e.g., codellama:7b)" 
+              aria-label="Model name input"
+              maxlength="100"
+            >
+            <button id="addModelBtn" class="btn-primary">
+              <i class="fas fa-plus"></i> Add Model
+            </button>
+          </div>
+        </div>
+
+        <!-- Current Models Section -->
+        <div class="model-section">
+          <h4>Your Models</h4>
+          <div id="modelsList" class="models-list">
+            <!-- Models will be populated here -->
+          </div>
+        </div>
+
+        <!-- Available Models from Ollama -->
+        <div class="model-section">
+          <h4>Available in Ollama</h4>
+          <p class="help-text">Models currently available in your Ollama installation.</p>
+          <button id="refreshOllamaModels" class="btn-secondary">
+            <i class="fas fa-sync"></i> Refresh List
+          </button>
+          <div id="ollamaModelsList" class="ollama-models-list">
+            <!-- Ollama models will be populated here -->
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
 
   <script>
     document.addEventListener('DOMContentLoaded', () => {
