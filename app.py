@@ -37,7 +37,7 @@ class Config:
     
     # Server configuration
     HOST = "0.0.0.0"  # Use "localhost" for local-only access
-    PORT = 5000
+    PORT = 5025
     
     # File upload settings
     MAX_CONTENT_LENGTH = 16 * 1024 * 1024  # 16MB max file size
@@ -70,6 +70,32 @@ logger = logging.getLogger(__name__)
 # ANSI escape sequence cleaner (for cleaning LLM output)
 ansi_escape = re.compile(r'\x1B\[[0-?]*[ -/]*[@-~]')
 
+## let's fix the DEFAULT Models in the Config class
+
+def extract_models() -> list:
+    try: ## in case ollama is not installed properly
+        command = "ollama list > temp.txt"
+        os.system(command)
+    except Exception as es:
+        print(f"Has ollama been properly installed? Error code is =-> {es}")
+        x = input("Press ENTER to terminate.")
+        sys.exit()
+
+    with open("temp.txt") as fd:
+        result = fd.readlines()
+    os.remove("temp.txt")
+
+    index = 0
+    name_list = []
+    for element in result:
+        if index == 0:
+            index += 1
+            continue
+        temp_list = element.split(' ')
+        name_list.append(temp_list[0])
+
+    return name_list
+
 # ---------------------------
 # Helper Functions
 # ---------------------------
@@ -80,7 +106,8 @@ def generate_chat_id() -> str:
 def get_user_models() -> list:
     """Get user's custom models from session, merged with defaults."""
     user_models = session.get('user_models', [])
-    all_models = list(Config.DEFAULT_MODELS)
+    #all_models = list(Config.DEFAULT_MODELS)
+    all_models = extract_models()
     
     # Add user models that aren't already in defaults
     for model in user_models:
@@ -138,8 +165,10 @@ def remove_user_model(model_name: str) -> tuple[bool, str]:
     if 'user_models' not in session:
         return False, "No custom models to remove."
     
-    if model_name in Config.DEFAULT_MODELS:
-        return False, "Cannot remove default models."
+    #if model_name in Config.DEFAULT_MODELS:
+    ## Do not remove the last model
+    if len(extract_models()) == 1:
+        return False, "Cannot remove model."
     
     if model_name in session['user_models']:
         session['user_models'].remove(model_name)
