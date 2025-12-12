@@ -118,7 +118,7 @@ If you'd like to support this project, consider donating via PayPal: [![Donate](
 
 ## Security Notice
 
-⚠️ **Important Security Considerations**:
+*******Important Security Considerations**:
 - Default binding: `0.0.0.0` (accessible on your network)
 - Not recommended for public internet exposure
 - No authentication layer implemented
