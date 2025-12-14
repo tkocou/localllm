@@ -103,7 +103,7 @@ If you'd like to support this project, consider donating via PayPal: [![Donate](
    ```bash
    python app.py
    ```
-   Access at `http://localhost:5000`
+   Access at `http://localhost:5025`
 
 2. **First-Time Setup**
    - Select model from available options
